@@ -1,0 +1,54 @@
+{
+  "best_model": "Random Forest",
+  "pr_auc_by_model": {
+    "Logistic Regression": {
+      "PR_AUC": 0.8081
+    },
+    "Random Forest": {
+      "PR_AUC": 0.8207
+    },
+    "Gradient Boosting": {
+      "PR_AUC": 0.8198
+    },
+    "XGBoost": {
+      "PR_AUC": 0.8163
+    },
+    "Isolation Forest (unsupervised)": {
+      "PR_AUC": 0.6528
+    }
+  },
+  "threshold": 0.06,
+  "precision": 0.199,
+  "recall": 0.962,
+  "f1": 0.33,
+  "confusion": {
+    "TN": 23571,
+    "FP": 1136,
+    "FN": 11,
+    "TP": 282
+  },
+  "cost_without_model_rs": 1465000,
+  "cost_with_model_rs": 111800,
+  "savings_pct": 92.4,
+  "features": [
+    "amount",
+    "new_device",
+    "new_beneficiary",
+    "hour",
+    "is_night",
+    "is_weekend",
+    "user_avg_amt",
+    "amt_vs_avg",
+    "secs_since_last",
+    "txn_count_1h",
+    "txn_count_24h",
+    "category_bills",
+    "category_electronics",
+    "category_food",
+    "category_gaming",
+    "category_grocery",
+    "category_p2p",
+    "category_shopping",
+    "category_travel"
+  ]
+}
