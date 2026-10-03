@@ -1,6 +1,6 @@
 # Real-Time UPI Fraud Detection
 
-An end-to-end machine learning system that scores UPI/card transactions for fraud risk in milliseconds, with a cost-based decision threshold, explainability, a REST API and a demo dashboard.
+An end-to-end machine learning system that scores UPI/card transactions for fraud risk in milliseconds, with a cost-based decision threshold, explainability and a demo dashboard.
 
 ## Run it (about 5 minutes)
 
@@ -8,7 +8,6 @@ An end-to-end machine learning system that scores UPI/card transactions for frau
 pip install -r requirements.txt
 python fraud_data.py        # 1. creates upi_transactions.csv and upi_features.csv
 python train.py             # 2. trains models, writes model.joblib, metrics.json, plots
-uvicorn api:app --reload    # 3. API docs at http://127.0.0.1:8000/docs
 streamlit run dashboard.py  # 4. demo dashboard
 ```
 
@@ -24,11 +23,11 @@ streamlit run dashboard.py  # 4. demo dashboard
 
 At the cost-optimal threshold (0.06): recall 96.2%, precision 19.9%, and estimated fraud loss reduced by about 92% (Rs 14.65 lakh to Rs 1.12 lakh) under stated cost assumptions.
 
-**Important:** these numbers come from synthetic data where I designed the fraud patterns, so they show the pipeline works, not real-world performance. Say this openly in interviews. To strengthen the project, rerun the same pipeline on a real dataset (see below).
+**Note:** Results are on simulated data with fraud patterns I designed, so they demonstrate the pipeline rather than real-world performance. Next step: validate on real datasets such as Kaggle Credit Card Fraud or PaySim.
 
 ---
 
-## What we did, and why
+## How it works?
 
 ### Stage 1: Data (`fraud_data.py`)
 **What:** Generated 100,000 UPI-style transactions with ~1.2% fraud. Fraud is injected with realistic behaviour: much larger amounts than the user's norm, night-time activity, new devices, new beneficiaries.
@@ -65,78 +64,20 @@ At the cost-optimal threshold (0.06): recall 96.2%, precision 19.9%, and estimat
 
 ---
 
-## Datasets to strengthen the project (download yourself)
-
-1. **Kaggle: Credit Card Fraud Detection** (mlg-ulb/creditcardfraud). 284,807 real European card transactions, 0.17% fraud. Best for proving the pipeline on real data. Skip the engineered features and use the columns directly.
+## Next steps: validating on real data
+1. **Kaggle: Credit Card Fraud Detection** (mlg-ulb/creditcardfraud). 284,807 real European card transactions, 0.17% fraud. Best for proving the pipeline on real data.
 2. **Kaggle: PaySim synthetic mobile money** (ealaxi/paysim1). Mobile-money transfers, closest to UPI behaviour.
 3. **Kaggle: IEEE-CIS Fraud Detection**. Large, rich e-commerce fraud data, harder and more realistic.
 
 ---
 
-## Limitations (mention these, they show maturity)
+## Limitations
 - Synthetic data, so results are optimistic.
 - Cost figures are assumptions.
 - No concept drift handling: fraudsters adapt, so models need monitoring and retraining.
 - In production, user history features would come from a low-latency feature store, not be recomputed per request.
 - Real systems combine ML with rules, device fingerprinting and graph analysis, and send borderline cases to human review.
 
-## Resume bullet (edit to match what you actually ran)
-> Built an end-to-end UPI fraud detection system in Python on 100K simulated transactions (1.2% fraud): engineered behavioural features (velocity, amount-vs-user-average, device/beneficiary risk), compared Logistic Regression, Random Forest and Gradient Boosting (PR-AUC 0.82), tuned a cost-based decision threshold (96% recall, ~92% estimated loss reduction), and deployed a FastAPI scoring service (~10 ms per transaction) with a Streamlit dashboard.
 
 ---
 
-# Interview questions and answers
-
-**1. Explain your project in 30 seconds.**
-I built a system that scores each UPI transaction for fraud risk in real time. I simulated transaction data, engineered behavioural features such as how much a transaction deviates from the user's normal spend and how many transactions they made in the last hour, trained and compared several models, chose a decision threshold based on the financial cost of missed fraud versus false alarms, and exposed it through an API with a dashboard.
-
-**2. Why not use accuracy?**
-Fraud is about 1% of transactions, so a model that predicts "genuine" every time scores 99% accuracy while catching zero fraud. I used PR-AUC, precision and recall, which focus on the rare class.
-
-**3. How did you handle class imbalance?**
-Class weights, so errors on fraud are penalised more. Other options are SMOTE and undersampling. I chose weights because they don't create artificial data and are simple to explain. SMOTE can also hurt when applied before splitting, because it leaks information.
-
-**4. Why a time-based split instead of a random one?**
-In production the model predicts future transactions from past ones. A random split lets the model see future patterns and the same user's behaviour on both sides, which inflates results.
-
-**5. What is data leakage and where did you avoid it?**
-Leakage is when information from outside the prediction moment enters the features. My user average uses only earlier transactions (shifted before averaging), so the current transaction can't influence its own feature.
-
-**6. Which features mattered most and why?**
-Amount relative to the user's average, new beneficiary, new device and hour of day. This matches how fraud works: a stolen account is used differently from its owner's usual behaviour.
-
-**7. How did you choose the threshold?**
-By minimising expected cost: a missed fraud costs about Rs 5,000 and a false alarm about Rs 50. That gave a low threshold (0.06), so we catch 96% of fraud at the cost of low precision. These costs are assumptions, and a bank would plug in its real numbers. Low precision is acceptable if flagged cases get a cheap step-up check such as an OTP or PIN instead of a hard block.
-
-**8. Your precision is only about 20%. Isn't that bad?**
-It's a deliberate trade-off. Each false alarm costs little, while each missed fraud costs a lot. I'd also route mid-risk scores to step-up authentication instead of blocking, and high-risk ones to a block. The two-tier policy improves the customer experience.
-
-**9. Why Random Forest or Gradient Boosting over Logistic Regression?**
-They capture interactions (large amount AND new device AND night) without manual feature crossing, and performed better on PR-AUC. Logistic Regression remains useful as an interpretable baseline. The gap here is small, which is itself a finding: the features carry most of the signal.
-
-**10. How would you explain a blocked transaction to a customer or regulator?**
-Use feature attributions, for example SHAP values, to give reasons such as "unusually large amount, new device, new payee, late night". I used permutation importance globally and can use SHAP per transaction.
-
-**11. What is the difference between supervised and unsupervised here? Why include Isolation Forest?**
-Supervised models learn from labelled fraud. Isolation Forest finds statistical outliers with no labels, which helps with new fraud types that aren't labelled yet. It scored lower (0.65 vs 0.82), showing the value of labels, but it's useful as a complement.
-
-**12. How would you make this truly real-time?**
-Keep per-user stats (averages, 1h and 24h counts) in a low-latency store such as Redis, updated by a streaming pipeline (Kafka). The model loads once in memory and the API scores in milliseconds. My endpoint already reports latency.
-
-**13. What happens when fraud patterns change?**
-Concept drift. I'd monitor precision, recall and feature distributions, retrain on a schedule, and use champion-challenger testing before replacing the live model. Because fraud labels arrive late (chargebacks and complaints), I'd account for label delay.
-
-**14. What are the limitations of your project?**
-It uses synthetic data, so absolute numbers are optimistic. Cost values are assumptions. There are no graph features (shared devices and mule accounts) and no human-in-the-loop review. With real data, I'd validate on a public dataset like Kaggle's credit card fraud data.
-
-**15. What would you do next?**
-Add graph features to detect mule accounts, SHAP explanations per transaction, drift monitoring, and test on real datasets such as PaySim or the Kaggle credit card data.
-
-**16. Why is this relevant to a bank like ICICI or Axis?**
-Fraud directly affects losses, customer trust and regulatory compliance. The project shows I can connect ML to business outcomes: choosing metrics, thresholds and explanations based on cost and regulation, not just model accuracy.
-
-**17. What is the difference between precision and recall in this context?**
-Recall is the share of actual frauds we catch. Precision is the share of flagged transactions that are really fraud. High recall protects the bank's money, and high precision protects customer experience. The threshold balances the two.
-
-**18. What is PR-AUC?**
-The area under the precision-recall curve. It summarises performance across all thresholds and is more informative than ROC-AUC when the positive class is rare.
