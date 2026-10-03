@@ -18,6 +18,7 @@ streamlit run dashboard.py  # 4. demo dashboard
 |---|---|
 | Random Forest (best) | 0.821 |
 | Gradient Boosting | 0.820 |
+| XGBoost | 0.816 |
 | Logistic Regression | 0.808 |
 | Isolation Forest (unsupervised) | 0.653 |
 
