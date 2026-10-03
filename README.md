@@ -8,7 +8,7 @@ An end-to-end machine learning system that scores UPI/card transactions for frau
 pip install -r requirements.txt
 python fraud_data.py        # 1. creates upi_transactions.csv and upi_features.csv
 python train.py             # 2. trains models, writes model.joblib, metrics.json, plots
-streamlit run dashboard.py  # 4. demo dashboard
+streamlit run dashboard.py  # 3. demo dashboard
 ```
 
 ## Results (time-based test set, 25,000 transactions, ~1.2% fraud)
